@@ -6,7 +6,7 @@ interface QualityWeek {
   week: string;
   qualityScore: number;
   contextPct: number;
-  specificAskPct: number;
+  specificityPct: number;
   examplesPct: number;
   vaguePct: number;
 }
@@ -62,7 +62,7 @@ export function QualityTimeline({ data }: { data: QualityWeek[] }) {
               const labels: Record<string, string> = {
                 qualityScore: 'Quality score',
                 contextPct: 'Has context',
-                specificAskPct: 'Specific ask',
+                specificityPct: 'Specificity',
                 vaguePct: 'Vague',
               };
               return [`${value}%`, labels[name as string] || name];
@@ -70,7 +70,7 @@ export function QualityTimeline({ data }: { data: QualityWeek[] }) {
           />
           <Area type="monotone" dataKey="qualityScore" stroke="#6CC88A" fill="url(#qualScoreGrad)" strokeWidth={2} />
           <Area type="monotone" dataKey="contextPct" stroke="#7B9AE6" fill="transparent" strokeWidth={1.5} strokeDasharray="4 2" />
-          <Area type="monotone" dataKey="specificAskPct" stroke="#F0D07B" fill="transparent" strokeWidth={1.5} strokeDasharray="4 2" />
+          <Area type="monotone" dataKey="specificityPct" stroke="#F0D07B" fill="transparent" strokeWidth={1.5} strokeDasharray="4 2" />
           <Area type="monotone" dataKey="vaguePct" stroke="#E6737B" fill="url(#vagueGrad)" strokeWidth={1.5} />
         </AreaChart>
       </ResponsiveContainer>
@@ -85,7 +85,7 @@ export function QualityTimeline({ data }: { data: QualityWeek[] }) {
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-0.5" style={{ background: '#F0D07B', borderBottom: '2px dashed #F0D07B' }} />
-          Specific ask
+          Specificity
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#E6737B' }} />

@@ -87,13 +87,21 @@ export default function PromptsPage() {
                 <Info className="h-3 w-3" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs text-xs">
-              <p>Average of two signals across all prompts:</p>
+            <TooltipContent side="bottom" className="max-w-sm text-xs">
+              <p>Weighted composite of 10 research-backed signals:</p>
               <ul className="mt-1 list-disc pl-3 space-y-0.5">
-                <li><strong>Context provided</strong> — prompt has 200+ chars, code blocks, or URLs</li>
-                <li><strong>Specific ask</strong> — contains &quot;can you&quot;, &quot;please&quot;, &quot;how do&quot;, &quot;what is&quot;, or &quot;help me&quot;</li>
+                <li><strong>Specificity</strong> (20%) — concrete constraints, numbers, formats</li>
+                <li><strong>Context</strong> (15%) — code blocks, URLs, file references</li>
+                <li><strong>Task clarity</strong> (15%) — clear action verbs or questions</li>
+                <li><strong>Adequate length</strong> (10%) — 15+ words</li>
+                <li><strong>Structure</strong> (10%) — lists, numbered steps, headings</li>
+                <li><strong>Examples</strong> (10%) — example input/output provided</li>
+                <li><strong>Output format</strong> (5%) — requested format specified</li>
+                <li><strong>Focus</strong> (5%) — single-task prompts</li>
+                <li><strong>Positive framing</strong> (3%) — &quot;do X&quot; vs &quot;don&apos;t do Y&quot;</li>
+                <li><strong>Vague</strong> (−7%) — penalizes &lt;5-word prompts</li>
               </ul>
-              <p className="mt-1 text-muted-foreground">Covers all time — every session in ~/.claude/</p>
+              <p className="mt-1 text-muted-foreground">Sources: PEEM, Anthropic, OpenAI, DAIR.AI. Covers all sessions in ~/.claude/</p>
             </TooltipContent>
           </Tooltip>
         </div>
