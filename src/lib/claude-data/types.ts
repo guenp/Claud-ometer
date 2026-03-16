@@ -174,7 +174,7 @@ export interface PromptAnalytics {
   tones: { name: string; count: number }[];
   qualityBreakdown: { name: string; pct: number }[];
   weeklyActivity: { week: string; count: number }[];
-  weeklyQuality: { week: string; qualityScore: number; contextPct: number; specificityPct: number; examplesPct: number; vaguePct: number }[];
+  weeklyQuality: { week: string; qualityScore: number; contextPct: number; specificityPct: number; vaguePct: number }[];
   weeklyTokens: { week: string; input: number; output: number; total: number }[];
   tips: PromptTip[];
 }

@@ -7,7 +7,6 @@ interface QualityWeek {
   qualityScore: number;
   contextPct: number;
   specificityPct: number;
-  examplesPct: number;
   vaguePct: number;
 }
 
