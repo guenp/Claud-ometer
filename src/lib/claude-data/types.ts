@@ -158,6 +158,27 @@ export interface SessionMessageDisplay {
   toolCalls?: { name: string; id: string }[];
 }
 
+export interface PromptTip {
+  area: string;
+  observation: string;
+  suggestion: string;
+  impact: 'high' | 'medium' | 'low';
+}
+
+export interface PromptAnalytics {
+  totalPrompts: number;
+  avgLength: number;
+  topCategory: string;
+  qualityScore: string;
+  categories: { name: string; count: number }[];
+  tones: { name: string; count: number }[];
+  qualityBreakdown: { name: string; pct: number }[];
+  weeklyActivity: { week: string; count: number }[];
+  weeklyQuality: { week: string; qualityScore: number; contextPct: number; specificAskPct: number; examplesPct: number; vaguePct: number }[];
+  weeklyTokens: { week: string; input: number; output: number; total: number }[];
+  tips: PromptTip[];
+}
+
 export interface DashboardStats {
   totalSessions: number;
   totalMessages: number;

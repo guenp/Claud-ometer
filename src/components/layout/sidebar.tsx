@@ -8,6 +8,7 @@ import {
   FolderKanban,
   MessageSquare,
   DollarSign,
+  MessageSquareText,
   Terminal,
   Database,
 } from 'lucide-react';
@@ -19,6 +20,7 @@ const navItems = [
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/sessions', label: 'Sessions', icon: MessageSquare },
   { href: '/costs', label: 'Costs', icon: DollarSign },
+  { href: '/prompts', label: 'Prompt analytics', icon: MessageSquareText },
   { href: '/data', label: 'Data', icon: Database },
 ];
 
