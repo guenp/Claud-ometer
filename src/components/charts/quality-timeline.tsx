@@ -5,9 +5,10 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceL
 interface QualityWeek {
   week: string;
   qualityScore: number;
-  contextPct: number;
   specificityPct: number;
-  vaguePct: number;
+  examplesPct: number;
+  structurePct: number;
+  contextPct: number;
 }
 
 export function QualityTimeline({ data }: { data: QualityWeek[] }) {
@@ -20,10 +21,6 @@ export function QualityTimeline({ data }: { data: QualityWeek[] }) {
             <linearGradient id="qualScoreGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#6CC88A" stopOpacity={0.3} />
               <stop offset="95%" stopColor="#6CC88A" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="vagueGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#E6737B" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="#E6737B" stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis
@@ -60,17 +57,19 @@ export function QualityTimeline({ data }: { data: QualityWeek[] }) {
             formatter={(value, name) => {
               const labels: Record<string, string> = {
                 qualityScore: 'Quality score',
-                contextPct: 'Has context',
                 specificityPct: 'Specificity',
-                vaguePct: 'Vague',
+                examplesPct: 'Examples',
+                structurePct: 'Structure',
+                contextPct: 'Context',
               };
               return [`${value}%`, labels[name as string] || name];
             }}
           />
           <Area type="monotone" dataKey="qualityScore" stroke="#6CC88A" fill="url(#qualScoreGrad)" strokeWidth={2} />
-          <Area type="monotone" dataKey="contextPct" stroke="#7B9AE6" fill="transparent" strokeWidth={1.5} strokeDasharray="4 2" />
           <Area type="monotone" dataKey="specificityPct" stroke="#F0D07B" fill="transparent" strokeWidth={1.5} strokeDasharray="4 2" />
-          <Area type="monotone" dataKey="vaguePct" stroke="#E6737B" fill="url(#vagueGrad)" strokeWidth={1.5} />
+          <Area type="monotone" dataKey="examplesPct" stroke="#E6737B" fill="transparent" strokeWidth={1.5} strokeDasharray="4 2" />
+          <Area type="monotone" dataKey="structurePct" stroke="#B07BE6" fill="transparent" strokeWidth={1.5} strokeDasharray="4 2" />
+          <Area type="monotone" dataKey="contextPct" stroke="#7B9AE6" fill="transparent" strokeWidth={1.5} strokeDasharray="4 2" />
         </AreaChart>
       </ResponsiveContainer>
       <div className="flex flex-wrap gap-4 mt-2 justify-center text-xs text-muted-foreground">
@@ -79,16 +78,20 @@ export function QualityTimeline({ data }: { data: QualityWeek[] }) {
           Quality score
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-0.5" style={{ background: '#7B9AE6', borderBottom: '2px dashed #7B9AE6' }} />
-          Has context
-        </span>
-        <span className="flex items-center gap-1">
           <span className="w-2.5 h-0.5" style={{ background: '#F0D07B', borderBottom: '2px dashed #F0D07B' }} />
           Specificity
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#E6737B' }} />
-          Vague
+          <span className="w-2.5 h-0.5" style={{ background: '#E6737B', borderBottom: '2px dashed #E6737B' }} />
+          Examples
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2.5 h-0.5" style={{ background: '#B07BE6', borderBottom: '2px dashed #B07BE6' }} />
+          Structure
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2.5 h-0.5" style={{ background: '#7B9AE6', borderBottom: '2px dashed #7B9AE6' }} />
+          Context
         </span>
       </div>
     </div>

@@ -60,12 +60,15 @@ function classify(text: string, rules: [string, RegExp[]][]): string {
 }
 
 // ── Quality signals ────────────────────────────────────────────
-// 4 core signals derived from Anthropic, OpenAI, PEEM, and DAIR.AI frameworks.
+// 4 research-backed dimensions from Anthropic, OpenAI, PEEM (arXiv:2603.10477),
+// DAIR.AI, and "Towards Detecting Prompt Knowledge Gaps" (arXiv:2501.11709).
+// Each signal is worth 25% of the composite score.
 
 function qualitySignals(text: string) {
   const words = text.split(/\s+/).length;
 
-  // 1. Specificity — concrete constraints, numbers, formats, languages (weight: 30%)
+  // 1. Specificity (25%) — concrete constraints, numbers, formats, named technologies
+  //    Sources: Anthropic best practices, PEEM "clarity & structure", arXiv:2501.11709 "specificity"
   const specificityPatterns = [
     /\b\d+\s*(words?|lines?|items?|examples?|seconds?|ms|bytes?|KB|MB|characters?)\b/i,
     /\b(JSON|XML|CSV|YAML|markdown|HTML|table|list|bullet)\b/i,
@@ -76,26 +79,49 @@ function qualitySignals(text: string) {
   ];
   const hasSpecificity = specificityPatterns.filter(p => p.test(text)).length >= 2;
 
-  // 2. Context — code snippets, errors, file references, or substantial detail (weight: 30%)
-  const hasContext = text.length > 200 || /```/.test(text) || /https?:\/\//.test(text)
+  // 2. Examples / few-shot (25%) — includes examples, sample I/O, code snippets as demonstration
+  //    Sources: Anthropic & OpenAI top-tier technique, PEEM structure dimension
+  const hasExamples = /```/.test(text)
+    || /\b(example|e\.g\.|for instance|for example|sample|such as|like this|here'?s? (an?|one))\b/i.test(text)
+    || /\b(input|output|given|expected|returns?|result|before|after)\s*:/i.test(text);
+
+  // 3. Structured formatting (25%) — headers, lists, XML tags, labeled sections, delimiters
+  //    Sources: Anthropic recommends XML tags, PEEM "clarity & structure", arXiv:2501.11709 "clarity"
+  const structurePatterns = [
+    /```[\s\S]*?```/,
+    /^#{1,6}\s+/m,
+    /^\s*[-*+]\s+/m,
+    /^\s*\d+[\.\)]\s+/m,
+    /<[a-z_-]+>/,
+    /\b(instructions?|context|examples?|constraints?|output format|requirements?)\s*:/i,
+  ];
+  const hasStructure = words > 20 && structurePatterns.some(p => p.test(text));
+
+  // 4. Context / motivation (25%) — background info, error details, file refs, rationale
+  //    Sources: Anthropic "give context", arXiv:2501.11709 "contextual richness"
+  const hasContext = text.length > 200 || /https?:\/\//.test(text)
     || /\b(error|exception|traceback|TypeError|SyntaxError)\b/i.test(text)
-    || /\b[\w/\\]+\.(py|js|ts|tsx|go|rs|java|cpp|rb|sh|sql|yaml|json)\b/.test(text);
+    || /\b[\w/\\]+\.(py|js|ts|tsx|go|rs|java|cpp|rb|sh|sql|yaml|json)\b/.test(text)
+    || /\b(because|since|the reason|so that|in order to|background|goal|motivation)\b/i.test(text);
 
-  // 3. Task clarity — starts with action verb or well-formed question (weight: 30%)
-  const hasTaskClarity = /^(write|create|build|implement|generate|fix|debug|refactor|optimize|explain|summarize|convert|extract|design|test|review|analyze|compare|find|add|remove|update|modify|change|replace|how|what|why|where|when|which|can you|could you|is there)\b/im.test(text);
-
-  // 4. Vague / underspecified — penalizes very short, unfocused prompts (weight: −10%)
-  const isVague = words < 10 && !/\?/.test(text) && !hasSpecificity;
-
-  // Weighted composite score (per-prompt, 0–100)
+  // Composite score: equal weight (25% each), 0–100
   const score = Math.max(0, Math.min(100,
-    (hasSpecificity ? 30 : 0) +
-    (hasContext      ? 30 : 0) +
-    (hasTaskClarity ? 30 : 0) +
-    (isVague        ? -10 : 10) // +10 baseline for non-vague, -10 penalty for vague
+    (hasSpecificity ? 25 : 0) +
+    (hasExamples    ? 25 : 0) +
+    (hasStructure   ? 25 : 0) +
+    (hasContext      ? 25 : 0)
   ));
 
-  return { hasSpecificity, hasContext, hasTaskClarity, isVague, score };
+  return { hasSpecificity, hasExamples, hasStructure, hasContext, score };
+}
+
+// Map score 0–100 to a letter grade
+function letterGrade(score: number): string {
+  if (score >= 90) return 'A';
+  if (score >= 75) return 'B';
+  if (score >= 50) return 'C';
+  if (score >= 25) return 'D';
+  return 'F';
 }
 
 // Patterns for system/machine-generated messages that aren't real user prompts
@@ -203,8 +229,8 @@ export async function GET() {
   // Classify each message
   const catCounts: Record<string, number> = {};
   const toneCounts: Record<string, number> = {};
-  const qualCounts = { hasSpecificity: 0, hasContext: 0, hasTaskClarity: 0, isVague: 0 };
-  const weeklyQual: Record<string, { total: number; scoreSum: number; hasContext: number; hasSpecificity: number; isVague: number }> = {};
+  const qualCounts = { hasSpecificity: 0, hasExamples: 0, hasStructure: 0, hasContext: 0 };
+  const weeklyQual: Record<string, { total: number; scoreSum: number; hasSpecificity: number; hasExamples: number; hasStructure: number; hasContext: number }> = {};
   let totalLength = 0;
   let totalScore = 0;
 
@@ -217,9 +243,9 @@ export async function GET() {
 
     const q = qualitySignals(text);
     if (q.hasSpecificity) qualCounts.hasSpecificity++;
+    if (q.hasExamples)    qualCounts.hasExamples++;
+    if (q.hasStructure)   qualCounts.hasStructure++;
     if (q.hasContext)     qualCounts.hasContext++;
-    if (q.hasTaskClarity) qualCounts.hasTaskClarity++;
-    if (q.isVague)        qualCounts.isVague++;
     totalScore += q.score;
 
     // Track quality per week
@@ -227,12 +253,13 @@ export async function GET() {
     const ws = new Date(d);
     ws.setDate(d.getDate() - d.getDay());
     const wk = ws.toISOString().slice(0, 10);
-    if (!weeklyQual[wk]) weeklyQual[wk] = { total: 0, scoreSum: 0, hasContext: 0, hasSpecificity: 0, isVague: 0 };
+    if (!weeklyQual[wk]) weeklyQual[wk] = { total: 0, scoreSum: 0, hasSpecificity: 0, hasExamples: 0, hasStructure: 0, hasContext: 0 };
     weeklyQual[wk].total++;
     weeklyQual[wk].scoreSum += q.score;
-    if (q.hasContext)     weeklyQual[wk].hasContext++;
     if (q.hasSpecificity) weeklyQual[wk].hasSpecificity++;
-    if (q.isVague)        weeklyQual[wk].isVague++;
+    if (q.hasExamples)    weeklyQual[wk].hasExamples++;
+    if (q.hasStructure)   weeklyQual[wk].hasStructure++;
+    if (q.hasContext)     weeklyQual[wk].hasContext++;
 
     totalLength += text.length;
   }
@@ -254,7 +281,7 @@ export async function GET() {
     totalPrompts: userMessages.length,
     avgLength: Math.round(totalLength / total),
     topCategory,
-    qualityScore: `${Math.round(totalScore / total)}%`,
+    qualityScore: `${letterGrade(Math.round(totalScore / total))} (${Math.round(totalScore / total)}%)`,
     categories: Object.entries(catCounts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count),
@@ -262,10 +289,10 @@ export async function GET() {
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count),
     qualityBreakdown: [
-      { name: 'Specificity (30%)',      pct: Math.round((qualCounts.hasSpecificity / total) * 100) },
-      { name: 'Context provided (30%)', pct: Math.round((qualCounts.hasContext / total) * 100) },
-      { name: 'Task clarity (30%)',     pct: Math.round((qualCounts.hasTaskClarity / total) * 100) },
-      { name: 'Vague / underspecified', pct: Math.round((qualCounts.isVague / total) * 100) },
+      { name: 'Specificity',          pct: Math.round((qualCounts.hasSpecificity / total) * 100) },
+      { name: 'Examples / few-shot',  pct: Math.round((qualCounts.hasExamples / total) * 100) },
+      { name: 'Structured formatting', pct: Math.round((qualCounts.hasStructure / total) * 100) },
+      { name: 'Context / motivation', pct: Math.round((qualCounts.hasContext / total) * 100) },
     ],
     weeklyActivity: Object.entries(weekBuckets)
       .map(([week, count]) => ({ week, count }))
@@ -274,9 +301,10 @@ export async function GET() {
       .map(([week, w]) => ({
         week,
         qualityScore: Math.round(w.scoreSum / (w.total || 1)),
-        contextPct: Math.round((w.hasContext / (w.total || 1)) * 100),
         specificityPct: Math.round((w.hasSpecificity / (w.total || 1)) * 100),
-        vaguePct: Math.round((w.isVague / (w.total || 1)) * 100),
+        examplesPct: Math.round((w.hasExamples / (w.total || 1)) * 100),
+        structurePct: Math.round((w.hasStructure / (w.total || 1)) * 100),
+        contextPct: Math.round((w.hasContext / (w.total || 1)) * 100),
       }))
       .sort((a, b) => a.week.localeCompare(b.week)),
     weeklyTokens: buildWeeklyTokens(tokenEvents),
@@ -330,29 +358,29 @@ function generateTips(
     });
   }
 
+  if (pct('hasExamples') < 20) {
+    tips.push({
+      area: 'Examples',
+      observation: `Only ${pct('hasExamples')}% of prompts include examples or sample input/output.`,
+      suggestion: 'Show don\'t tell: provide a sample input/output pair or say "Format it like this: ...". Few-shot examples are a top-tier technique per Anthropic and OpenAI.',
+      impact: 'high',
+    });
+  }
+
+  if (pct('hasStructure') < 15) {
+    tips.push({
+      area: 'Structure',
+      observation: `Only ${pct('hasStructure')}% of prompts use structural formatting (lists, headers, sections).`,
+      suggestion: 'For complex prompts, use bullet lists, numbered steps, or labeled sections like "Context:", "Requirements:". Anthropic recommends XML tags for multi-part prompts.',
+      impact: 'medium',
+    });
+  }
+
   if (pct('hasContext') < 40) {
     tips.push({
       area: 'Context',
-      observation: `Only ${pct('hasContext')}% of prompts include context (code snippets, errors, file refs).`,
-      suggestion: 'Paste the relevant code or error directly. For debugging: "Expected [X], got [Y] when given [input]."',
-      impact: 'high',
-    });
-  }
-
-  if (pct('hasTaskClarity') < 50) {
-    tips.push({
-      area: 'Task clarity',
-      observation: `Only ${pct('hasTaskClarity')}% of prompts start with a clear action verb or question.`,
-      suggestion: 'Lead with the verb: "Refactor X to Y", "Explain why Z happens", "Add tests for the edge case".',
-      impact: 'high',
-    });
-  }
-
-  if (pct('isVague') > 15) {
-    tips.push({
-      area: 'Vagueness',
-      observation: `${pct('isVague')}% of prompts are very short and vague (under 10 words).`,
-      suggestion: 'Instead of "fix this", try "fix the null check in parseUser — it crashes when email is missing".',
+      observation: `Only ${pct('hasContext')}% of prompts include context or motivation (background, errors, file refs, rationale).`,
+      suggestion: 'Include the "why": paste relevant code, error messages, or explain your goal. For debugging: "Expected [X], got [Y] when given [input]."',
       impact: 'high',
     });
   }
